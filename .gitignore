@@ -16,5 +16,19 @@ Thumbs.db
 outputs/model/*.pkl
 outputs/model/*.joblib
 
+# =========================
+# Data (IMPORTANT)
+# =========================
+
+# Ignore all XLSXs in data/
+data/*.xlsx
+
+# BUT allow specific files (ejemplo público)
+!data/dataframe.xlsx
+
+# Jupyter
+.ipynb_checkpoints/
+*_ESP.ipynb
+
 # Local files
 *.xlsx

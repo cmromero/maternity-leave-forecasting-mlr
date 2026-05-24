@@ -1,0 +1,2 @@
+model_type,features,MAE_test,RMSE_test,R2_test,sMAPE_test,AIC_train,BIC_train,adj_R2_train
+statsmodels_ols,ppef_mujeres_25_40 + RE_ponderado_lag1 + mes,1.49762766875419,2.0189878632498752,0.1119772119824306,21.594474504284115,474.17322472349065,484.553704124029,0.1369182913812248

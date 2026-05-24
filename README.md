@@ -1,36 +1,43 @@
-# Monthly Forecasting of New Equivalent Maternity Leaves in a Hospital
+# Monthly forecasting of equivalent new maternity leaves in a hospital
 
-## Multiple linear regression project to anticipate new maternity leaves among female employees
+## Educational multiple linear regression project applied to workforce planning
 
-This repository develops a complete **quantitative forecasting project applied to hospital workforce management**.
+This repository develops a complete **quantitative forecasting project applied to hospital human resources management**.
 
-The objective is to build a **multiple linear regression** model capable of estimating, at a monthly frequency, the expected volume of **new equivalent maternity leaves** among female employees in a hospital.
+The objective is to build, evaluate, and deploy a model capable of estimating the expected monthly volume of **equivalent new maternity leaves**. The idea is not to predict individual decisions, but to anticipate an aggregate phenomenon that may affect replacement planning, healthcare organization, and budget forecasting.
 
-The central idea is not to predict individual decisions, but to anticipate an aggregated phenomenon that can affect workforce planning, care coverage and expenditure forecasting. To do this, the project combines demographic, employment-related and administrative variables that may be related to the future occurrence of new maternity leaves.
+The project follows a complete workflow:
 
-The project reproduces the usual stages of a quantitative forecasting workflow: problem definition, dataset construction, exploratory analysis, feature selection, model training, evaluation and deployment in an interactive application.
+1. dataset construction and cleaning;
+2. exploratory analysis;
+3. creation of predictive variables;
+4. training of multiple linear regression models;
+5. comparison against simple baselines;
+6. deployment of an interactive app with Streamlit.
 
-> **Note on the data:** the data included in this repository are fictitious and are used only for educational and illustrative purposes. They do not correspond to real data from any institution and do not contain personal or identifiable administrative information.
+> **Note about the data:** the data included in this repository are fictitious and are used only for educational and illustrative purposes. They do not correspond to real data from any institution and do not contain personal or identifiable administrative information.
 
 ---
 
-## 1. Defining the Objective of the Quantitative Forecasting Project
+## 1. Forecasting question
 
-Every predictive project should begin with a specific question.
+The main question of the project is:
 
-In this case, the question is:
+> Can we anticipate the monthly volume of equivalent new maternity leaves among female workers in a hospital using aggregated information on workforce size, contractual stability, approximate family structure, and pregnancy-risk leave?
 
-> Can we forecast the monthly volume of new equivalent maternity leaves among female employees in a hospital using aggregated information on workforce size, employment stability, approximate family structure and pregnancy-related risk leave?
+The forecast is made at a **monthly** scale, because this frequency is useful for operational and budget planning.
 
-### Target variable
+---
 
-The target variable of the project is:
+## 2. Target variable
+
+The target variable is:
 
 ```text
 mat_eq_nuevas_mes
 ```
 
-This variable represents **monthly new equivalent maternity leaves**.
+It represents **monthly equivalent new maternity leaves**.
 
 It is calculated as:
 
@@ -38,608 +45,327 @@ It is calculated as:
 mat_eq_nuevas_mes = dias_mat_nuevas_mes / dias_naturales_mes
 ```
 
-Where:
+The logic is simple: a maternity leave that starts at the beginning of the month generates more monthly workload than one that starts at the end.
 
-- `dias_mat_nuevas_mes` is the sum of days within the month contributed by maternity leaves that started during that same month.
-- `dias_naturales_mes` is the number of calendar days in the month.
-
-For example, if a maternity leave starts on day 16 of a 30-day month, it contributes 15 days within that month. Its equivalent value will be:
+For example, if a maternity leave starts on day 16 of a 30-day month, it contributes 15 days within that month:
 
 ```text
 15 / 30 = 0.5
 ```
 
-Choosing this variable makes it possible to capture the monthly operational impact better than a simple count of new maternity leaves. A maternity leave that starts on the first day of the month does not have the same weight as one that starts on the last day.
-
-### Forecasting horizon
-
-The project works at a **monthly** frequency.
-
-Monthly forecasting is especially useful for:
-
-- anticipating coverage needs,
-- planning substitutions,
-- estimating budgetary impact,
-- detecting months with greater organizational pressure,
-- improving decision-making in workforce management.
+That is why this variable is more informative than a simple count of new maternity leaves. It better measures the equivalent monthly impact of the phenomenon.
 
 ---
 
-## 2. Problem Context and Variables Considered
+## 3. Explanatory variables
 
-This project uses concepts specific to workforce management in a public hospital. To make the project easier to understand, this section summarizes the main variables used.
+The dataset uses aggregated monthly variables. The main ones are:
 
-### Equivalent workforce
+| Variable | Description |
+|---|---|
+| `MES` | Reference month. |
+| `mat_eq_nuevas_mes` | Target variable: monthly equivalent new maternity leaves. |
+| `ppef_mujeres_25_40` | Equivalent workforce of women aged 25 to 40. It approximates the size of the exposed population. |
+| `pct_indef_25_40` | Percentage of women aged 25 to 40 with a permanent contract. It approximates labor stability. |
+| `pct_amb_fill_25_40` | Percentage of women aged 25 to 40 with at least one minor child declared in payroll. It is an administrative proxy for family structure. |
+| `RE_ponderado_lag1` | Weighted pregnancy-risk leave indicator with a one-month lag. |
+| `RE_ponderado_lag2` | Weighted pregnancy-risk leave indicator with a two-month lag. |
+| `RE_ponderado_lag3` | Weighted pregnancy-risk leave indicator with a three-month lag. |
+| `mat_eq_lag1` | Value of the target variable in the previous month. |
+| `mat_eq_lag12` | Value of the target variable in the same month of the previous year. |
+| `mes` | Month number, used as a seasonality variable. |
 
-The **equivalent workforce** transforms contract days, leave days or activity days into a measure that can be compared across months.
-
-In general terms:
-
-```text
-equivalent_workforce = computable_days / calendar_days_in_month
-```
-
-If a person is employed or on leave for a full month, their equivalent value will be approximately 1. If they are employed or on leave for only half a month, their equivalent value will be approximately 0.5.
-
-This project uses an aggregated variable for the exposed population:
-
-```text
-ppef_mujeres_25_40
-```
-
-This variable represents the equivalent workforce of women aged 25 to 40. It is used as an approximation of the population size with the highest probability of generating new maternity leaves.
-
-### New equivalent maternity leaves
-
-The variable `mat_eq_nuevas_mes` measures the equivalent workload generated by maternity leaves that started during the month.
-
-It does not measure all active maternity leaves, but only the monthly inflow of new maternity leaves. This makes it possible to analyze the incidence of the phenomenon, not the accumulated stock.
-
-### Number of new maternity leaves
-
-The variable:
-
-```text
-n_maternidades_nuevas
-```
-
-indicates the gross number of maternity leaves that started during the month.
-
-It will not necessarily be used as a predictor because it is part of the construction of the target variable, but it is useful for interpreting the results.
-
-### Days of new maternity leaves in the month
-
-The variable:
-
-```text
-dias_mat_nuevas_mes
-```
-
-records the days within the month generated by maternity leaves that started during that same month.
-
-It is the numerator of the target variable.
-
-### Percentage of permanent female employees
-
-The variable:
-
-```text
-pct_indef_25_40
-```
-
-represents the percentage of women aged 25 to 40 with a permanent contract.
-
-The hypothesis is that employment stability may be related to life and family decisions. Direct causality is not assumed, but the project explores whether this variable helps improve the aggregate forecast.
-
-### Percentage of female employees with a declared minor child
-
-The variable:
-
-```text
-pct_amb_fill_25_40
-```
-
-represents the proportion of women aged 25 to 40 with at least one minor child declared in payroll records, based on the information available for personal income tax withholding.
-
-It should be interpreted as an **administrative proxy** for family structure, not as a perfect measurement of the real number of children. It may help approximate the family composition of the target population.
-
-### Pregnancy-related risk leave
-
-**Pregnancy-related risk leave** is an administrative situation prior to maternity leave that may appear when the job entails a risk for the pregnant employee or for the fetus.
-
-In this project, it is considered a relevant leading signal because many pregnancy-related risk leave situations later end in maternity leave.
-
-Aggregated variables have been created for active pregnancy-related risk leave situations at the end of the previous month:
-
-```text
-RE_activo_total_lag1
-RE_activo_0_1m_lag1
-RE_activo_1_2m_lag1
-RE_activo_2_3m_lag1
-RE_activo_3m_plus_lag1
-```
-
-These variables classify active pregnancy-related risk situations according to how long they have been active.
-
-In addition, a synthetic variable is constructed:
-
-```text
-RE_ponderado
-```
-
-This variable summarizes active risk cohorts by giving greater weight to those that, based on their duration, may be closer to turning into maternity leave.
+The pregnancy-risk leave variable is considered especially relevant because it may work as an **early signal**: some pregnancy-risk leave situations later end in maternity leave.
 
 ---
 
-## 3. Data Acquisition, Cleaning and Transformation (ETL)
+## 4. Project workflow
 
-The final dataset is obtained from aggregated internal administrative sources. The objective of the ETL process is to transform individual records into a monthly table ready for modeling.
+The project is organized into three main notebooks.
 
-The notebook responsible for this phase will be:
+### 4.1 Notebook 01 — Data Cleaning & EDA
+
+File:
 
 ```text
 notebooks/01_data_cleaning_eda.ipynb
 ```
 
-### Input file
+This notebook prepares the data and performs the exploratory analysis.
 
-The aggregated dataset will be stored in:
+It includes:
 
-```text
-data/df_noves_maternitats.csv
-```
+- loading the initial file;
+- converting `MES` to date format;
+- chronological sorting;
+- reviewing types, missing values, and descriptive statistics;
+- visualizing the evolution of the target variable;
+- visual comparison with `ppef_mujeres_25_40` and `RE_ponderado`;
+- creation of lagged variables;
+- Pearson and Spearman correlation analysis;
+- collinearity analysis using a correlation matrix and VIF;
+- export of the clean dataset for modeling.
 
-Each row represents one month.
-
-### Expected dataset structure
-
-The initial dataframe includes variables such as:
-
-```text
-MES
-ppef_mujeres_25_40
-pct_indef_25_40
-pct_amb_fill_25_40
-n_maternidades_nuevas
-dias_mat_nuevas_mes
-mat_eq_nuevas_mes
-RE_activo_total_lag1
-RE_activo_0_1m_lag1
-RE_activo_1_2m_lag1
-RE_activo_2_3m_lag1
-RE_activo_3m_plus_lag1
-RE_ponderado
-```
-
-### Main transformations
-
-During the ETL phase, at least the following steps will be performed:
-
-1. Import the original file.
-2. Convert the `MES` column to date format.
-3. Sort the dataset chronologically.
-4. Review missing values, duplicates and data types.
-5. Verify the consistency of the target variable.
-6. Create auxiliary time variables:
+The main output of this notebook is:
 
 ```text
-month
-quarter
-year
+data/df_model_full.csv
 ```
 
-7. Create lagged variables if the monthly series is continuous:
-
-```text
-mat_eq_lag1
-mat_eq_lag12
-RE_ponderado_lag1
-RE_ponderado_lag2
-RE_ponderado_lag3
-```
-
-8. Export the cleaned dataset for modeling.
+This file contains all clean candidate variables prepared for modeling.
 
 ---
 
-## 4. EDA Phase: Exploratory Data Analysis
+### 4.2 Notebook 02 — Modeling
 
-The purpose of the exploratory analysis is to understand the structure of the dataset before training the model.
-
-It will be developed in:
-
-```text
-notebooks/01_data_cleaning_eda.ipynb
-```
-
-### 4.1 Initial review
-
-The following aspects will be analyzed:
-
-- dataset dimensions,
-- available time range,
-- missing values,
-- duplicates,
-- data types,
-- descriptive statistics,
-- distribution of the target variable.
-
-### 4.2 Time evolution
-
-The monthly evolution of the following variables will be visualized:
-
-- `mat_eq_nuevas_mes`,
-- `ppef_mujeres_25_40`,
-- `pct_indef_25_40`,
-- `pct_amb_fill_25_40`,
-- `RE_ponderado`.
-
-The objective is to observe whether there are trends, breaks, level shifts or atypical months.
-
-### 4.3 Linear correlation analysis
-
-Correlation matrices will be calculated using two methods:
-
-#### Pearson
-
-Measures the linear association between numerical variables.
-
-#### Spearman
-
-Measures monotonic association and is less sensitive to relationships that are not strictly linear or to extreme values.
-
-The correlation between the target variable and the main explanatory variables will be analyzed:
-
-```text
-ppef_mujeres_25_40
-pct_indef_25_40
-pct_amb_fill_25_40
-RE_ponderado
-RE_ponderado_lag1
-RE_ponderado_lag2
-RE_ponderado_lag3
-```
-
-### 4.4 Collinearity analysis
-
-Multiple linear regression requires monitoring collinearity between explanatory variables.
-
-Two tools will be used:
-
-1. **Correlation matrix between predictors**
-2. **VIF — Variance Inflation Factor**
-
-VIF makes it possible to detect variables that provide highly redundant information compared with the others. If two variables are highly correlated, it may be necessary to remove one of them or compare alternative models.
-
-This will be especially important for variables such as:
-
-```text
-ppef_mujeres_25_40
-pct_indef_25_40
-pct_amb_fill_25_40
-```
-
-because they may be related to the structural evolution of the workforce.
-
-### 4.5 Feature importance with Random Forest
-
-Although the main model will be a multiple linear regression, an auxiliary **Random Forest Regressor** model will be used to obtain a first approximation of the relative importance of the variables.
-
-This analysis does not replace the interpretation of the linear regression, but it can help detect which variables contain more predictive signal.
-
-Candidate variables:
-
-```text
-ppef_mujeres_25_40
-pct_indef_25_40
-pct_amb_fill_25_40
-RE_ponderado
-RE_ponderado_lag1
-RE_ponderado_lag2
-RE_ponderado_lag3
-mat_eq_lag1
-mat_eq_lag12
-month
-```
-
----
-
-## 5. Building the Forecasting Model
-
-Model construction and evaluation will be carried out in:
+File:
 
 ```text
 notebooks/02_modeling.ipynb
 ```
 
-The objective is to build and compare **multiple linear regression** models to predict:
+This notebook builds and compares **multiple linear regression** models.
 
-```text
-mat_eq_nuevas_mes
-```
+The process includes:
 
-### 5.1 Models to compare
+- loading `df_model_full.csv`;
+- removing the first months without enough history for the lagged variables;
+- temporal train/test split;
+- controlled generation of variable combinations;
+- training models with `scikit-learn LinearRegression`;
+- training models with `statsmodels OLS`;
+- model comparison using MAE, RMSE, R², and sMAPE;
+- careful selection of the best model;
+- analysis of predictions, residuals, coefficients, and collinearity of the final model.
 
-Two multiple linear regression methods in Python will be compared.
-
-#### Model 1. Multiple linear regression with `scikit-learn`
-
-This model will be oriented toward practical prediction and later deployment in Streamlit.
-
-Advantages:
-
-- easy integration into pipelines,
-- simple prediction generation,
-- compatibility with `joblib` or `pickle`,
-- direct use in the application.
-
-#### Model 2. Multiple linear regression with `statsmodels` — OLS
-
-This model will be oriented toward statistical interpretation.
-
-Advantages:
-
-- coefficient analysis,
-- confidence intervals,
-- statistical significance,
-- basic fit diagnostics,
-- greater clarity when explaining the model.
-
-### 5.2 Candidate models
-
-Several progressive specifications will be built.
-
-#### Structural baseline model
-
-```text
-mat_eq_nuevas_mes
-~ ppef_mujeres_25_40
-+ pct_indef_25_40
-+ pct_amb_fill_25_40
-+ month
-```
-
-#### Model with pregnancy-related risk leading signal
-
-```text
-mat_eq_nuevas_mes
-~ ppef_mujeres_25_40
-+ pct_indef_25_40
-+ pct_amb_fill_25_40
-+ RE_ponderado_lag2
-+ month
-```
-
-#### Model with temporal inertia
-
-```text
-mat_eq_nuevas_mes
-~ ppef_mujeres_25_40
-+ pct_amb_fill_25_40
-+ RE_ponderado_lag2
-+ mat_eq_lag1
-+ month
-```
-
-The final selection will depend on out-of-sample evaluation and coefficient stability.
-
-### 5.3 Train/test split
-
-Since this is a monthly time series, the dataset should not be split randomly.
-
-A temporal split will be used:
-
-```text
-train = first months of the historical series
-test = last 12 or 18 months
-```
-
-This makes it possible to evaluate the model in a situation closer to real use: training with the past and predicting future months.
-
-### 5.4 Evaluation metrics
-
-Several metrics will be used to compare the models:
-
-```text
-MAE
-RMSE
-R²
-MAPE or sMAPE, if appropriate
-```
-
-#### MAE
-
-Mean absolute error. It is easy to interpret because it is expressed in the same units as the target variable.
-
-#### RMSE
-
-Penalizes large errors more heavily. It is useful for detecting models that fail badly in some months.
-
-#### R²
-
-Indicates the proportion of variability explained, although it should not be used as the only model selection criterion.
-
-#### MAPE / sMAPE
-
-Can be useful, but must be interpreted carefully if the target variable takes small values.
-
-### 5.5 Comparison against baseline models
-
-The regression model will only be useful if it improves simple references.
-
-It will be compared against:
-
-```text
-baseline_historical_mean
-baseline_same_month_previous_year
-baseline_3m_moving_average
-```
-
-The question will not only be whether the model has a good fit, but whether it improves a simple forecasting rule.
-
-### 5.6 Model interpretation
-
-Once the final model has been selected, the coefficients will be interpreted.
-
-For example:
-
-- how the size of the exposed population relates to new equivalent maternity leaves,
-- whether employment stability provides signal,
-- whether the minor child proxy improves the forecast,
-- which lag of `RE_ponderado` is most useful,
-- what typical error can be expected in the monthly forecasts.
+The model search does not consist of testing any combination without criteria. The size of the models is limited and redundant combinations are avoided, such as including several very similar lags of the same indicator.
 
 ---
 
-## 6. Deployment and Monitoring
+### 4.3 Notebook 03 — Baselines and Model Comparison
 
-The project will include an application developed with Streamlit.
+File:
 
-Main file:
+```text
+notebooks/03_baselines_and_model_comparison.ipynb
+```
+
+This notebook answers the key question:
+
+> Does the multiple linear regression model really improve simple prediction rules?
+
+To do this, it compares the best MLR model against several baselines:
+
+| Baseline | Description |
+|---|---|
+| Global historical mean | Always predicts the historical average of the training set. |
+| Historical mean by month | Predicts the historical average of that same month of the year. |
+| Last observed value | Uses the previous month’s value as the prediction. |
+| Same month of the previous year | Uses the value observed 12 months earlier as the prediction. |
+| 3-month moving average | Uses the average of the previous three months. |
+
+This comparison is essential. A predictive model only makes sense if it improves simple, transparent, and easy-to-implement alternatives.
+
+---
+
+## 5. Evaluation criterion
+
+The main metric of the project is:
+
+```text
+MAE — Mean Absolute Error
+```
+
+MAE is interpreted in the same units as the target variable. For example, an MAE of 1.2 means that the model is wrong, on average, by about 1.2 monthly equivalent maternity leaves.
+
+The following are also calculated:
+
+```text
+RMSE
+R²
+sMAPE
+```
+
+Model selection is not based only on the lowest error. The following are also taken into account:
+
+- parsimony;
+- interpretability;
+- stability;
+- absence of severe collinearity;
+- operational usefulness;
+- improvement over baselines.
+
+---
+
+## 6. Streamlit application
+
+File:
 
 ```text
 app/app.py
 ```
 
-### 6.1 Objective of the application
+The project includes an interactive application developed with **Streamlit**.
 
-The app will allow users to interactively visualize how the model works.
+The app allows users to:
 
-It may include:
+- load the modeling dataset;
+- visualize the historical series of `mat_eq_nuevas_mes`;
+- consult basic descriptive metrics;
+- view a correlation chart;
+- compare the model against baselines;
+- enter manual scenarios;
+- obtain an expected monthly prediction.
 
-- dataset loading,
-- visualization of the historical series,
-- selection of explanatory variables,
-- comparison between prediction and actual value,
-- manual scenario input,
-- prediction of new equivalent maternity leaves for future months.
+The application uses a deployable version of the model based on:
 
-### 6.2 Initial functionality
+```text
+StandardScaler + LinearRegression
+```
 
-The first version of the application may include:
-
-1. A panel with the historical evolution of `mat_eq_nuevas_mes`.
-2. A correlation chart.
-3. A prediction section where the user enters values for:
+and allows users to simulate scenarios by entering values for:
 
 ```text
 ppef_mujeres_25_40
-pct_indef_25_40
-pct_amb_fill_25_40
-RE_ponderado_lag2
-month
+RE_ponderado_lag1
+mes
 ```
-
-4. An output with the expected monthly prediction.
-5. A comparison between model and baseline.
-
-### 6.3 Future monitoring
-
-A forecasting model should not be considered definitive.
-
-It will be necessary to:
-
-- update the dataset monthly,
-- retrain the model periodically,
-- compare forecast error and actual error,
-- detect changes in the relationship between variables,
-- review whether coefficients remain stable,
-- check whether the model continues to improve the baselines.
-
-### 6.4 Possible improvements
-
-Future extensions could include:
-
-- forecasting the carry-over effect of active maternity leaves in subsequent months,
-- prediction intervals,
-- rolling-origin validation,
-- comparison with Ridge or Lasso,
-- automatic report generation,
-- integration with monthly data updates,
-- synthetic dataset version for open publication.
 
 ---
 
-## 7. Repository Structure
+## 7. How to run the project
 
-The proposed repository structure is:
+### 7.1 Clone the repository
+
+```bash
+git clone https://github.com/your_username/maternity-leave-forecasting-mlr.git
+cd maternity-leave-forecasting-mlr
+```
+
+### 7.2 Create the environment and install dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+### 7.3 Run the notebooks
+
+Recommended order:
+
+```text
+notebooks/01_data_cleaning_eda.ipynb
+notebooks/02_modeling.ipynb
+notebooks/03_baselines_and_model_comparison.ipynb
+```
+
+### 7.4 Run the Streamlit application
+
+From the root of the repository:
+
+```bash
+streamlit run app/app.py
+```
+
+The application will normally open at:
+
+```text
+http://localhost:8501
+```
+
+---
+
+## 8. Repository structure
 
 ```text
 maternity-leave-forecasting-mlr/
 │
 ├── README.md
-├── README_ESP.md
+├── README_ESP.md (Spanish readme)
 ├── requirements.txt
 ├── .gitignore
 │
 ├── data/
-│   └── df_noves_maternitats.csv
+│   ├── dataframe.xlsx
+│   └── df_model_full.csv
 │
 ├── notebooks/
 │   ├── 01_data_cleaning_eda.ipynb
-│   └── 02_modeling.ipynb
+│   ├── 02_modeling.ipynb
+│   └── 03_baselines_and_model_comparison.ipynb
 │
 ├── app/
 │   └── app.py
 │
 └── outputs/
-    ├── figures/
-    ├── models/
-    └── reports/
+    ├── reports/
+    └── model/
 ```
 
-### `README.md`
+### Main files
 
-Main README in English.
+| File | Function |
+|---|---|
+| `data/dataframe.xlsx` | Initial fictitious dataset. |
+| `data/df_model_full.csv` | Clean dataset used for modeling. |
+| `notebooks/01_data_cleaning_eda.ipynb` | Cleaning, transformation, and EDA. |
+| `notebooks/02_modeling.ipynb` | MLR model construction and selection. |
+| `notebooks/03_baselines_and_model_comparison.ipynb` | Comparison against baselines and final evaluation. |
+| `app/app.py` | Interactive Streamlit application. |
+| `requirements.txt` | Project dependencies. |
+| `.gitignore` | Exclusions for local files, checkpoints, and unnecessary outputs. |
 
-### `README_ESP.md`
+---
 
-Spanish README with a complete explanation of the project.
+## 9. Expected results
 
-### `requirements.txt`
+This project does not aim to eliminate uncertainty. It aims to reduce it in a measurable way.
 
-List of libraries required to run the notebooks and the application.
+A model will be considered useful if it:
 
-Possible dependencies:
+- clearly improves simple baselines;
+- maintains an acceptable mean error;
+- uses few variables;
+- produces interpretable results;
+- can be integrated into a planning support tool.
 
-```text
-pandas
-numpy
-matplotlib
-seaborn
-scikit-learn
-statsmodels
-streamlit
-joblib
-openpyxl
-```
+In the final comparison, if the multiple linear regression model reduces MAE compared with the best baseline, it can be considered a first valid tool to support monthly equivalent new maternity leave forecasting.
 
-### `data/`
+---
 
-Folder where the dataset is stored in CSV format.
+## 10. Limitations
 
-If the repository is public, the file should be anonymized, aggregated or synthetic.
+The project has important limitations:
 
-### `notebooks/01_data_cleaning_eda.ipynb`
+- it works with aggregated monthly data;
+- it does not predict individual decisions;
+- the variable `pct_amb_fill_25_40` is an imperfect administrative proxy;
+- the relationship between pregnancy-risk leave and maternity leave may change over time;
+- the results depend on the available historical period;
+- the model must be reviewed and retrained periodically.
 
-Notebook for loading, cleaning, transformation and exploratory analysis.
+In addition, the published dataset is fictitious, so the objective of the repository is methodological and educational.
 
-### `notebooks/02_modeling.ipynb`
+---
 
-Notebook for training, evaluation and interpretation of the multiple linear regression model.
+## 11. Next improvements
 
-### `app/app.py`
+Possible extensions of the project:
 
-Streamlit application to visualize the model and test scenarios.
-
-### `outputs/`
-
-Folder to store charts, trained models and results.
+- rolling-origin validation;
+- comparison with Ridge and Lasso;
+- prediction intervals;
+- improvement of the `RE_ponderado` indicator;
+- modeling the carry-over effect of active maternity leaves;
+- automated monthly updating;
+- report generation;
+- deployment of the app on Streamlit Community Cloud.
 
 ---
 
 ## Conclusion
 
-This project shows how a simple and interpretable technique such as **multiple linear regression** can be applied to a real hospital management problem.
+This project shows how a simple and interpretable technique such as **multiple linear regression** can be applied to a realistic hospital management problem.
 
-The objective is not to eliminate uncertainty, but to reduce it and make it more explicit. Monthly forecasting of new equivalent maternity leaves can help anticipate workforce needs, plan scenarios and turn scattered administrative information into a practical decision-support tool.
+Monthly forecasting of equivalent new maternity leaves does not eliminate uncertainty, but it helps structure it more clearly. It turns scattered administrative information into a useful estimate for planning, scenario comparison, and better decision-making.
+
+In this sense, the value of the project is not only in the final model, but in the process: properly defining the target variable, building the dataset, comparing alternatives, measuring error, and always checking the result against simple baselines.
