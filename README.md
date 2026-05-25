@@ -258,18 +258,100 @@ notebooks/02_modeling.ipynb
 notebooks/03_baselines_and_model_comparison.ipynb
 ```
 
-### 7.4 Run the Streamlit application
+### 7.4 Reproduce and run the Streamlit application
 
-From the root of the repository:
+The app is located at:
+
+```text
+app/app.py
+```
+
+To reproduce it locally, the repository must keep this structure:
+
+```text
+maternity-leave-forecasting-mlr/
+│
+├── app/
+│   └── app.py
+│
+├── data/
+│   └── df_model_full.csv
+│
+└── requirements.txt
+```
+
+The app expects the modeling dataset to be available at:
+
+```text
+data/df_model_full.csv
+```
+
+If this file does not exist yet, run the notebooks first in the recommended order:
+
+```text
+notebooks/01_data_cleaning_eda.ipynb
+notebooks/02_modeling.ipynb
+notebooks/03_baselines_and_model_comparison.ipynb
+```
+
+Then, from the root of the repository, install the dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+Finally, launch the app with:
 
 ```bash
 streamlit run app/app.py
 ```
 
-The application will normally open at:
+The application will normally open automatically in the browser. If it does not, open:
 
 ```text
 http://localhost:8501
+```
+
+To stop the app and return to the terminal, press:
+
+```text
+Ctrl + C
+```
+
+#### What the app does
+
+The Streamlit app reproduces the deployable part of the project. It:
+
+- loads `data/df_model_full.csv`;
+- converts `MES` to datetime format;
+- trains a deployable regression pipeline using `StandardScaler + LinearRegression`;
+- compares the model against simple baselines;
+- displays the historical series of `mat_eq_nuevas_mes`;
+- shows a Pearson correlation heatmap;
+- allows manual scenario simulation using:
+
+```text
+ppef_mujeres_25_40
+RE_ponderado_lag1
+mes
+```
+
+The output is an expected monthly value of equivalent new maternity leaves.
+
+#### Troubleshooting
+
+If Streamlit cannot find the dataset, check that the file exists here:
+
+```text
+data/df_model_full.csv
+```
+
+and that the command is being executed from the repository root, not from inside the `app/` folder.
+
+If the required packages are missing, reinstall the dependencies:
+
+```bash
+pip install -r requirements.txt
 ```
 
 ---

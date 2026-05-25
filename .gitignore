@@ -23,7 +23,8 @@ outputs/model/*.joblib
 # Ignore all XLSXs in data/
 data/*.xlsx
 
-# BUT allow specific files (ejemplo público)
+# But allow the data folder and this specific public file
+!data/
 !data/dataframe.xlsx
 
 # Jupyter

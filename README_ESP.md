@@ -258,18 +258,100 @@ notebooks/02_modeling.ipynb
 notebooks/03_baselines_and_model_comparison.ipynb
 ```
 
-### 7.4 Ejecutar la aplicación Streamlit
+### 7.4 Reproducir y ejecutar la aplicación Streamlit
 
-Desde la raíz del repositorio:
+La app se encuentra en:
+
+```text
+app/app.py
+```
+
+Para reproducirla en local, el repositorio debe mantener esta estructura:
+
+```text
+maternity-leave-forecasting-mlr/
+│
+├── app/
+│   └── app.py
+│
+├── data/
+│   └── df_model_full.csv
+│
+└── requirements.txt
+```
+
+La app espera encontrar el dataset de modelado en:
+
+```text
+data/df_model_full.csv
+```
+
+Si este archivo todavía no existe, ejecuta primero los notebooks en el orden recomendado:
+
+```text
+notebooks/01_data_cleaning_eda.ipynb
+notebooks/02_modeling.ipynb
+notebooks/03_baselines_and_model_comparison.ipynb
+```
+
+Después, desde la raíz del repositorio, instala las dependencias:
+
+```bash
+pip install -r requirements.txt
+```
+
+Finalmente, lanza la app con:
 
 ```bash
 streamlit run app/app.py
 ```
 
-La aplicación se abrirá normalmente en:
+La aplicación se abrirá normalmente de forma automática en el navegador. Si no se abre, entra en:
 
 ```text
 http://localhost:8501
+```
+
+Para detener la app y volver a la terminal, pulsa:
+
+```text
+Ctrl + C
+```
+
+#### Qué hace la app
+
+La aplicación Streamlit reproduce la parte desplegable del proyecto. Permite:
+
+- cargar `data/df_model_full.csv`;
+- convertir `MES` a formato fecha;
+- entrenar un pipeline desplegable con `StandardScaler + LinearRegression`;
+- comparar el modelo contra baselines simples;
+- visualizar la serie histórica de `mat_eq_nuevas_mes`;
+- mostrar un mapa de correlación de Pearson;
+- simular escenarios manuales usando:
+
+```text
+ppef_mujeres_25_40
+RE_ponderado_lag1
+mes
+```
+
+La salida es una predicción mensual esperada de nuevas maternidades equivalentes.
+
+#### Solución de problemas frecuentes
+
+Si Streamlit no encuentra el dataset, revisa que el archivo exista aquí:
+
+```text
+data/df_model_full.csv
+```
+
+y que el comando se esté ejecutando desde la raíz del repositorio, no desde dentro de la carpeta `app/`.
+
+Si faltan paquetes, reinstala las dependencias:
+
+```bash
+pip install -r requirements.txt
 ```
 
 ---
@@ -280,7 +362,7 @@ http://localhost:8501
 maternity-leave-forecasting-mlr/
 │
 ├── README.md
-├── README_ESP.md (readme en español)
+├── README_ESP.md
 ├── requirements.txt
 ├── .gitignore
 │
