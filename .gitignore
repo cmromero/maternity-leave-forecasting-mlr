@@ -20,16 +20,10 @@ outputs/model/*.joblib
 # Data (IMPORTANT)
 # =========================
 
-# Ignore all XLSXs in data/
-data/*.xlsx
-
-# But allow the data folder and this specific public file
-!data/
-!data/dataframe.xlsx
+# Ignore only the original/private dataset
+data/dataframe_original_H7.xlsx
 
 # Jupyter
 .ipynb_checkpoints/
 *_ESP.ipynb
 
-# Local files
-*.xlsx
